@@ -1,0 +1,110 @@
+# [PackageDev] target_format: plist, ext: tmLanguage
+---
+name: Terraform
+scopeName: source.terraform
+fileTypes: [ "tf", "tfvars" ]
+uuid: 2a4be4fe-5d3a-7841-6ae4-b1b8ab60fd10
+
+patterns:
+- include: '#expression'
+
+repository:
+  expression:
+    patterns:
+    - include: '#comment'
+    - include: '#parens'
+    - include: '#list'
+    - include: '#heredoc'
+    - include: '#string'
+    - include: '#resource-definition'
+    - name: constant.language.terraform
+      match: \b(true|false|null)\b
+    - name: constant.numeric.terraform
+      match: \b[0-9]+\b
+
+  parens:
+    begin: \(
+    end: \)
+    patterns:
+    - include: '#expression'
+
+  list:
+    begin: \[
+    end: \]
+    patterns:
+    - include: '#expression'
+
+  comment-remark:
+    match: (TODO|FIXME|BUG|\!\!\!):?
+    captures:
+      '1': {name: markup.bold.comment.terraform }
+  comment:
+    patterns:
+    - name: comment.block.terraform
+      begin: /\*([^*]|\*[^\/])*
+      end: \*\/
+      patterns:
+      - include: '#comment-remark'
+    - name: comment.line.number-sign.terraform
+      begin: \#
+      end: $
+      patterns:
+      - include: '#comment-remark'
+
+  interpolation:
+    contentName: string.interpolated.terraform
+    begin: \$\{
+    beginCaptures:
+      "0":
+        name: constant.character.begin.terraform
+    end: \}
+    endCaptures:
+      "0":
+        name: constant.character.end.terraform
+    patterns:
+    - include: '#parens'
+    - name: support.function.terraform
+      match: \b(concat|file|join|lookup|element)\b
+    - name: support.scope.terraform
+      match: \b(var|path|count)\.\b
+
+  string-quoted:
+    name: string.quoted.double.terraform
+    begin: \"
+    end: \"
+    patterns:
+    - match: \\.
+      name: constant.character.escape.terraform
+    - include: '#interpolation'
+
+  string:
+    patterns:
+    - name: string.quoted.other.terraform
+      begin: \'\'
+      end: \'\'(?!\$|\'|\\.)
+      patterns:
+      - name: constant.character.escape.terraform
+        match: \'\'(\$|\'|\\.)
+      - include: '#interpolation'
+    - include: '#string-quoted'
+
+  heredoc:
+    patterns:
+    - name: string.quoted.other.terraform
+      begin: <<(.+)$
+      end: ^\1
+      patterns:
+      - name: constant.character.escape.terraform
+        match: \'\'(\$|\'|\\.)
+      - include: '#interpolation'
+    - include: '#string-quoted'
+
+  resource-definition:
+    name: function.terraform
+    begin: \b(resource|provisioner)\b
+    beginCaptures:
+      "0":
+        name: keyword.other.terraform
+    end: \{
+    patterns:
+    - include: '#string'
